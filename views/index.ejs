@@ -1,61 +1,123 @@
-<!-- 채팅 UI -->
-<div class="card shadow-sm border-0 mt-4">
-    <div class="card-body">
-        <h5 class="fw-bold"><span id="aiStatus" class="badge bg-primary">Elice AI</span> 상담소</h5>
-        <div id="chatBox" class="p-3 mb-3" style="height: 200px; overflow-y: auto; background: #f9f9fb; border-radius: 15px;">
-            엘리스: 안녕하세요! 오늘 어떤 실수를 하셨나요? 제가 도와드릴게요.
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareMate AI - 대시보드</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background: #f4f7fe; color: #333; letter-spacing: -0.02em; }
+        .hero-card { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; border-radius: 24px; padding: 30px; }
+        .card { border: none; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); }
+        .ai-box { background: white; border-radius: 20px; min-height: 300px; display: flex; flex-direction: column; }
+        #chatBox { flex-grow: 1; overflow-y: auto; max-height: 400px; padding: 20px; border-bottom: 1px solid #eee; }
+        .elice-msg { background: #f0f2ff; color: #3a0ca3; padding: 12px 18px; border-radius: 15px 15px 15px 0; margin-bottom: 10px; width: fit-content; }
+        .user-msg { background: #4361ee; color: white; padding: 12px 18px; border-radius: 15px 15px 0 15px; margin-bottom: 10px; margin-left: auto; width: fit-content; }
+        .pulse { animation: pulse-animation 2s infinite; }
+        @keyframes pulse-animation { 0% { box-shadow: 0 0 0 0px rgba(67, 97, 238, 0.4); } 100% { box-shadow: 0 0 0 20px rgba(67, 97, 238, 0); } }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold text-primary" href="#">CareMate AI</a>
+        <div class="d-flex align-items-center">
+            <span class="me-3 small fw-bold"><%= user.username %>님 환영합니다</span>
+            <a href="/logout" class="btn btn-sm btn-outline-danger">로그아웃</a>
         </div>
-        <div class="input-group">
-            <input type="text" id="userInput" class="form-control" placeholder="예: 방금 담배를 피웠어, 과식했어...">
-            <button class="btn btn-primary" onclick="askAI()">상담하기</button>
+    </div>
+</nav>
+
+<div class="container my-4">
+    <!-- Hero Section: 응급 카드 -->
+    <div class="hero-card mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="fw-bold mb-1">🚨 골든타임 응급 카드</h4>
+                <p class="opacity-75 mb-3">응급 상황 시 의료진이 확인하는 정보입니다.</p>
+                <div class="d-flex gap-3">
+                    <div class="bg-white bg-opacity-25 p-2 px-3 rounded-pill small">혈액형: RH+ A</div>
+                    <div class="bg-white bg-opacity-25 p-2 px-3 rounded-pill small">기저질환: 없음</div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-light text-danger fw-bold rounded-pill pulse px-4 py-2">SOS 버튼</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- AI 상담창 -->
+        <div class="col-lg-12">
+            <div class="card ai-box shadow-sm">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 fw-bold text-primary">🤖 엘리스 AI 코칭</h5>
+                    <small id="statusText" class="text-muted">연결됨: Gemini 1.5 Flash</small>
+                </div>
+                <div id="chatBox">
+                    <div class="elice-msg">반가워요! <%= user.username %>님. 오늘 건강 습관 중에 후회되는 일이 있나요? 제가 상담해 드릴게요.</div>
+                </div>
+                <div class="p-3 bg-light rounded-bottom">
+                    <div class="input-group">
+                        <input type="text" id="userInput" class="form-control border-0 p-3" placeholder="예: 오늘 방금 담배를 피웠어, 치킨을 너무 많이 먹었어..." onkeypress="if(event.keyCode==13) askAI()">
+                        <button class="btn btn-primary px-4" onclick="askAI()">상담하기</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-// 🔊 TTS 함수: 엘리스의 목소리
+// --- TTS 음성 기능 ---
 function speak(text) {
-    // 이전 음성 중단
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ko-KR';
-    utterance.rate = 1.1; // 약간 빠른 속도로 스마트한 느낌
-    utterance.pitch = 1.2; // 약간 높은 톤으로 캐릭터성 부여
-    
-    window.speechSynthesis.speak(utterance);
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel(); // 이전 음성 중단
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'ko-KR';
+    utter.rate = 1.1; // 목소리 속도
+    utter.pitch = 1.2; // 목소리 톤
+    window.speechSynthesis.speak(utter);
 }
 
+// --- AI 상담 요청 ---
 async function askAI() {
     const input = document.getElementById('userInput');
     const chatBox = document.getElementById('chatBox');
-    const msg = input.value;
-    if(!msg) return;
+    const statusText = document.getElementById('statusText');
+    const msg = input.value.trim();
+    
+    if (!msg) return;
 
-    chatBox.innerHTML += `<div><b>나:</b> ${msg}</div>`;
+    // 사용자 메시지 추가
+    chatBox.innerHTML += `<div class="user-msg">${msg}</div>`;
     input.value = '';
+    chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        const response = await fetch('/api/chat', {
+        statusText.innerText = "엘리스가 생각 중...";
+        const res = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: msg })
         });
-        const data = await response.json();
+        const data = await res.json();
 
-        // 결과 출력
-        chatBox.innerHTML += `<div class="mt-2 text-primary"><b>엘리스 (${data.source}):</b> ${data.text}</div>`;
+        // AI 메시지 추가
+        chatBox.innerHTML += `<div class="elice-msg"><b>엘리스:</b> ${data.text}</div>`;
+        statusText.innerText = `연결됨: ${data.source}`;
         chatBox.scrollTop = chatBox.scrollHeight;
 
-        // 🔊 답변을 목소리로 읽어줌
+        // 음성 출력
         speak(data.text);
-        
-        // 소스에 따른 상태 표시
-        document.getElementById('aiStatus').innerText = `Elice AI (${data.source})`;
-        document.getElementById('aiStatus').className = data.source === 'Gemini' ? 'badge bg-primary' : 'badge bg-warning';
-
     } catch (e) {
-        chatBox.innerHTML += `<div>오류가 발생했습니다.</div>`;
+        chatBox.innerHTML += `<div class="elice-msg text-danger">서버와 연결이 끊겼습니다.</div>`;
     }
 }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
