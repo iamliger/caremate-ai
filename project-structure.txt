@@ -1,0 +1,15 @@
+caremate-ai/
+├── public/
+│   ├── css/ (style.css)
+│   ├── js/ (common.js - 커스텀 모달 logic)
+│   └── images/
+├── views/
+│   ├── partials/ (header.ejs, footer.ejs, modal.ejs)
+│   ├── index.ejs (대시보드)
+│   └── login.ejs
+├── lib/
+│   ├── db.js (MySQL 연결)
+│   └── ai.js (Gemini + Ollama 하이브리드 로직)
+├── .env (환경 변수)
+├── package.json
+└── server.js

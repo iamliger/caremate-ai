@@ -1,0 +1,43 @@
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Output directory (Optional)
+dist/
+build/
+
+# Environment variables (중요: API 키 및 DB 패스워드 유출 방지)
+.env
+
+# XAMPP / MariaDB local data (만약 프로젝트 내에 DB 덤프를 보관할 경우)
+*.sql
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
