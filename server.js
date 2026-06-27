@@ -68,4 +68,15 @@ app.get('/', async (req, res) => {
     res.render('index', { user: req.session.user });
 });
 
+const ai = require('./lib/ai');
+
+// AI 상담 API
+app.post('/api/chat', async (req, res) => {
+    if (!req.session.user) return res.status(401).json({ text: "로그인이 필요합니다." });
+
+    const { message } = req.body;
+    const result = await ai.getChatResponse(message);
+    res.json(result);
+});
+
 app.listen(3000, () => console.log('CareMate AI running on http://localhost:3000'));

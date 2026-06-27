@@ -1,0 +1,61 @@
+<!-- 채팅 UI -->
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-body">
+        <h5 class="fw-bold"><span id="aiStatus" class="badge bg-primary">Elice AI</span> 상담소</h5>
+        <div id="chatBox" class="p-3 mb-3" style="height: 200px; overflow-y: auto; background: #f9f9fb; border-radius: 15px;">
+            엘리스: 안녕하세요! 오늘 어떤 실수를 하셨나요? 제가 도와드릴게요.
+        </div>
+        <div class="input-group">
+            <input type="text" id="userInput" class="form-control" placeholder="예: 방금 담배를 피웠어, 과식했어...">
+            <button class="btn btn-primary" onclick="askAI()">상담하기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 🔊 TTS 함수: 엘리스의 목소리
+function speak(text) {
+    // 이전 음성 중단
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 1.1; // 약간 빠른 속도로 스마트한 느낌
+    utterance.pitch = 1.2; // 약간 높은 톤으로 캐릭터성 부여
+    
+    window.speechSynthesis.speak(utterance);
+}
+
+async function askAI() {
+    const input = document.getElementById('userInput');
+    const chatBox = document.getElementById('chatBox');
+    const msg = input.value;
+    if(!msg) return;
+
+    chatBox.innerHTML += `<div><b>나:</b> ${msg}</div>`;
+    input.value = '';
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg })
+        });
+        const data = await response.json();
+
+        // 결과 출력
+        chatBox.innerHTML += `<div class="mt-2 text-primary"><b>엘리스 (${data.source}):</b> ${data.text}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // 🔊 답변을 목소리로 읽어줌
+        speak(data.text);
+        
+        // 소스에 따른 상태 표시
+        document.getElementById('aiStatus').innerText = `Elice AI (${data.source})`;
+        document.getElementById('aiStatus').className = data.source === 'Gemini' ? 'badge bg-primary' : 'badge bg-warning';
+
+    } catch (e) {
+        chatBox.innerHTML += `<div>오류가 발생했습니다.</div>`;
+    }
+}
+</script>
