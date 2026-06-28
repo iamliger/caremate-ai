@@ -8,116 +8,205 @@
     <link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <style>
         body { font-family: 'Pretendard', sans-serif; background: #f4f7fe; color: #333; letter-spacing: -0.02em; }
-        .hero-card { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; border-radius: 24px; padding: 30px; }
+        .hero-card { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; border-radius: 24px; padding: 30px; position: relative; overflow: hidden; }
+        .weather-badge { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 50px; font-size: 0.9rem; }
         .card { border: none; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); }
-        .ai-box { background: white; border-radius: 20px; min-height: 300px; display: flex; flex-direction: column; }
-        #chatBox { flex-grow: 1; overflow-y: auto; max-height: 400px; padding: 20px; border-bottom: 1px solid #eee; }
-        .elice-msg { background: #f0f2ff; color: #3a0ca3; padding: 12px 18px; border-radius: 15px 15px 15px 0; margin-bottom: 10px; width: fit-content; }
-        .user-msg { background: #4361ee; color: white; padding: 12px 18px; border-radius: 15px 15px 0 15px; margin-bottom: 10px; margin-left: auto; width: fit-content; }
-        .pulse { animation: pulse-animation 2s infinite; }
-        @keyframes pulse-animation { 0% { box-shadow: 0 0 0 0px rgba(67, 97, 238, 0.4); } 100% { box-shadow: 0 0 0 20px rgba(67, 97, 238, 0); } }
+        #chatBox { height: 350px; overflow-y: auto; padding: 20px; background: #fff; border-bottom: 1px solid #eee; }
+        .elice-msg { background: #f0f2ff; color: #3a0ca3; padding: 12px 18px; border-radius: 15px 15px 15px 0; margin-bottom: 10px; max-width: 80%; }
+        .user-msg { background: #4361ee; color: white; padding: 12px 18px; border-radius: 15px 15px 0 15px; margin-bottom: 10px; margin-left: auto; max-width: 80%; width: fit-content; }
+        .btn-primary { background: #4361ee; border: none; border-radius: 12px; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
-    <div class="container">
-        <a class="navbar-brand fw-bold text-primary" href="#">CareMate AI</a>
-        <div class="d-flex align-items-center">
-            <span class="me-3 small fw-bold"><%= user.username %>님 환영합니다</span>
-            <a href="/logout" class="btn btn-sm btn-outline-danger">로그아웃</a>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
+        <div class="container d-flex justify-content-between">
+            <a class="navbar-brand fw-bold text-primary" href="#">CareMate AI</a>
+            
+            <div class="d-flex align-items-center">
+                <!-- 🔊 음성 ON/OFF 스위치 -->
+                <div class="form-check form-switch me-3">
+                    <input class="form-check-input" type="checkbox" id="voiceToggle" checked>
+                    <label class="form-check-label small fw-bold" for="voiceToggle">음성 알림</label>
+                </div>
+                
+                <button class="btn btn-sm btn-outline-primary me-2" onclick="testVoice()">🔊 테스트</button>
+                <span class="me-3 small fw-bold"><%= user.username %>님</span>
+                <a href="/logout" class="btn btn-sm btn-outline-danger">로그아웃</a>
+            </div>
         </div>
-    </div>
-</nav>
+    </nav>
 
 <div class="container my-4">
-    <!-- Hero Section: 응급 카드 -->
+    <!-- Hero Section -->
     <div class="hero-card mb-4">
+        <div id="weatherInfo" class="weather-badge">날씨 정보를 가져오는 중...</div>
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h4 class="fw-bold mb-1">🚨 골든타임 응급 카드</h4>
-                <p class="opacity-75 mb-3">응급 상황 시 의료진이 확인하는 정보입니다.</p>
-                <div class="d-flex gap-3">
-                    <div class="bg-white bg-opacity-25 p-2 px-3 rounded-pill small">혈액형: RH+ A</div>
-                    <div class="bg-white bg-opacity-25 p-2 px-3 rounded-pill small">기저질환: 없음</div>
+                <p class="opacity-75 mb-3">당신의 건강 데이터가 실시간 보호 중입니다.</p>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-white bg-opacity-25 rounded-pill p-2 px-3">RH+ A형</span>
+                    <span class="badge bg-white bg-opacity-25 rounded-pill p-2 px-3">기저질환 없음</span>
                 </div>
-            </div>
-            <div class="col-md-4 text-end">
-                <button class="btn btn-light text-danger fw-bold rounded-pill pulse px-4 py-2">SOS 버튼</button>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <!-- AI 상담창 -->
-        <div class="col-lg-12">
-            <div class="card ai-box shadow-sm">
-                <div class="card-header bg-white py-3 border-0">
-                    <h5 class="mb-0 fw-bold text-primary">🤖 엘리스 AI 코칭</h5>
-                    <small id="statusText" class="text-muted">연결됨: Gemini 1.5 Flash</small>
-                </div>
-                <div id="chatBox">
-                    <div class="elice-msg">반가워요! <%= user.username %>님. 오늘 건강 습관 중에 후회되는 일이 있나요? 제가 상담해 드릴게요.</div>
-                </div>
-                <div class="p-3 bg-light rounded-bottom">
-                    <div class="input-group">
-                        <input type="text" id="userInput" class="form-control border-0 p-3" placeholder="예: 오늘 방금 담배를 피웠어, 치킨을 너무 많이 먹었어..." onkeypress="if(event.keyCode==13) askAI()">
-                        <button class="btn btn-primary px-4" onclick="askAI()">상담하기</button>
-                    </div>
-                </div>
+    <!-- AI 상담 섹션 -->
+    <div class="card">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between">
+            <h5 class="mb-0 fw-bold text-primary">🤖 엘리스 AI 상담소</h5>
+            <small id="statusText" class="text-muted">연결됨: Gemini 1.5</small>
+        </div>
+        <div id="chatBox">
+            <div class="elice-msg">반가워요! 목소리가 잘 안 들린다면 상단의 '목소리 테스트'를 한 번 눌러주세요!</div>
+        </div>
+        <div class="p-3 bg-light">
+            <div class="input-group">
+                <input type="text" id="userInput" class="form-control border-0 p-3" placeholder="엘리스에게 건강 고민을 말해보세요..." onkeypress="if(event.keyCode==13) askAI()">
+                <button class="btn btn-primary px-4" onclick="askAI()">상담하기</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// --- TTS 음성 기능 ---
-function speak(text) {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel(); // 이전 음성 중단
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'ko-KR';
-    utter.rate = 1.1; // 목소리 속도
-    utter.pitch = 1.2; // 목소리 톤
-    window.speechSynthesis.speak(utter);
-}
-
-// --- AI 상담 요청 ---
-async function askAI() {
-    const input = document.getElementById('userInput');
-    const chatBox = document.getElementById('chatBox');
-    const statusText = document.getElementById('statusText');
-    const msg = input.value.trim();
+    // --- [전역 설정 변수] ---
+    let voices = [];
+    const voiceToggle = document.getElementById('voiceToggle'); // 상단에 스위치 ID가 'voiceToggle'이어야 함
     
-    if (!msg) return;
-
-    // 사용자 메시지 추가
-    chatBox.innerHTML += `<div class="user-msg">${msg}</div>`;
-    input.value = '';
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    try {
-        statusText.innerText = "엘리스가 생각 중...";
-        const res = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: msg })
-        });
-        const data = await res.json();
-
-        // AI 메시지 추가
-        chatBox.innerHTML += `<div class="elice-msg"><b>엘리스:</b> ${data.text}</div>`;
-        statusText.innerText = `연결됨: ${data.source}`;
-        chatBox.scrollTop = chatBox.scrollHeight;
-
-        // 음성 출력
-        speak(data.text);
-    } catch (e) {
-        chatBox.innerHTML += `<div class="elice-msg text-danger">서버와 연결이 끊겼습니다.</div>`;
+    // --- 1. 날씨 정보 가져오기 (Open-Meteo) ---
+    function fetchWeather() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const temp = data.current_weather.temperature;
+                        const weatherBox = document.getElementById('weatherInfo');
+                        if(weatherBox) weatherBox.innerText = `📍 현재 위치: ${temp}°C`;
+                    })
+                    .catch(err => console.error("날씨 정보 로드 실패:", err));
+            }, () => {
+                const weatherBox = document.getElementById('weatherInfo');
+                if(weatherBox) weatherBox.innerText = "📍 위치 권한이 필요합니다";
+            });
+        }
     }
-}
-</script>
+    fetchWeather();
+    
+    // --- 2. 음성(TTS) 엔진 설정 ---
+    
+    // 브라우저에서 사용 가능한 음성 목록을 업데이트하는 함수
+    function updateVoiceList() {
+        voices = window.speechSynthesis.getVoices();
+        console.log(`[System] 음성 엔진 로드 완료: ${voices.length}개 발견`);
+    }
+    
+    // 음성 목록 로딩 이벤트 (브라우저마다 시점이 다름)
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = updateVoiceList;
+    }
+    
+    // 실제 말하기 함수
+    function speak(text) {
+        // 1. 음성 출력 여부 확인 (ON/OFF 스위치 체크)
+        if (voiceToggle && !voiceToggle.checked) {
+            console.log("[System] 음성 출력이 꺼져 있습니다.");
+            return;
+        }
+    
+        if (!window.speechSynthesis) {
+            console.error("이 브라우저는 음성 기능을 지원하지 않습니다.");
+            return;
+        }
+    
+        // 2. 이전 음성 중단 및 초기화
+        window.speechSynthesis.cancel();
+    
+        // 3. 음성 목록이 비어있다면 재로드
+        if (voices.length === 0) updateVoiceList();
+    
+        const utter = new SpeechSynthesisUtterance(text);
+        
+        // 4. 자연스러운 한국어 음성 찾기 순위
+        // 1위: Google 한국어, 2위: Microsoft Heami, 3위: 기본 한국어
+        const preferredVoices = ['Google 한국어', 'Microsoft Heami', 'Korean', 'ko-KR'];
+        let selectedVoice = null;
+    
+        for (const name of preferredVoices) {
+            selectedVoice = voices.find(v => v.name.includes(name) || v.lang.includes(name));
+            if (selectedVoice) break;
+        }
+    
+        if (selectedVoice) {
+            utter.voice = selectedVoice;
+            console.log("🔊 사용 중인 음성:", selectedVoice.name);
+        }
+    
+        utter.lang = 'ko-KR';
+        utter.rate = 1.05; // 너무 느리지 않게 설정
+        utter.pitch = 1.1;  // 여성 코치 느낌을 위해 약간 높임
+    
+        // 5. 말하기 시작
+        console.log("🗣️ 엘리스 음성 출력:", text);
+        window.speechSynthesis.speak(utter);
+    }
+    
+    // 테스트용 버튼 함수
+    function testVoice() {
+        console.log("[Test] 음성 테스트 버튼 클릭");
+        speak("안녕하세요! 저는 당신의 건강 코치 엘리스입니다. 목소리가 잘 들리시나요?");
+    }
+    
+    // --- 3. AI 상담 로직 (서버 콘솔 연동) ---
+    async function askAI() {
+        const input = document.getElementById('userInput');
+        const chatBox = document.getElementById('chatBox');
+        const statusText = document.getElementById('statusText');
+        const msg = input.value.trim();
+        
+        if (!msg) return;
+    
+        // [음성 잠금 해제] 사용자가 버튼을 클릭한 '이 시점'에 빈 소리를 내야 브라우저 보안이 풀림
+        speak(""); 
+    
+        // 화면에 내 메시지 표시
+        chatBox.innerHTML += `<div class="user-msg">${msg}</div>`;
+        input.value = '';
+        chatBox.scrollTop = chatBox.scrollHeight;
+    
+        try {
+            if(statusText) statusText.innerText = "엘리스가 생각 중...";
+            
+            // 서버 API 호출
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg })
+            });
+            
+            const data = await res.json();
+    
+            // 화면에 엘리스 답변 표시
+            chatBox.innerHTML += `<div class="elice-msg"><b>엘리스:</b> ${data.text}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            if(statusText) statusText.innerText = `연결됨: ${data.source}`;
+    
+            // [핵심] 서버에서 받은 텍스트를 한글로 읽어주기
+            // Ollama가 혹시 영어를 섞어 쓰더라도 speak 함수가 한글 엔진으로 시도함
+            speak(data.text);
+    
+        } catch (e) {
+            console.error("AI 상담 에러:", e);
+            chatBox.innerHTML += `<div class="elice-msg">⚠️ 연결에 실패했습니다. 서버 로그를 확인하세요.</div>`;
+        }
+    }
+    </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

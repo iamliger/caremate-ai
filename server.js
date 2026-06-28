@@ -81,29 +81,48 @@ app.get('/logout', (req, res) => {
     res.redirect('/login');
 });
 
-// --- AI 상담 API (Hybrid: Gemini + Ollama) ---
 app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
-    const prompt = `너는 지능형 건강 코치 '엘리스'야. 사용자의 고민: "${message}". 따뜻하게 격려하고 3줄 이내로 해결책을 말해줘.`;
+    console.log(`\n[${new Date().toLocaleTimeString()}] 📩 사용자 질문: ${message}`);
+
+    // 프롬프트를 더 강력하게 (한국어 강제)
+    const prompt = `당신은 지능형 건강 코치 '엘리스'입니다. 
+    지침: 
+    1. 반드시 한국어(Korean)로만 답변하십시오. 영어를 절대 사용하지 마십시오.
+    2. 사용자에게 따뜻한 존댓말을 사용하십시오.
+    3. 답변은 3줄 이내로 핵심만 전달하십시오.
+    
+    사용자의 고민: "${message}"
+    엘리스의 한국어 답변:`;
 
     try {
-        // 1. Gemini 시도
-        const model = genAI.getGenerativeModel({ model: process.env.MODEL_NAME || "gemini-1.5-flash" });
+        console.log(`[AI] Gemini 요청 중... (Model: gemini-1.5-flash)`);
+        // 모델명을 직접 지정하거나 환경변수 확인
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        res.json({ source: 'Gemini', text: response.text() });
+        const aiText = response.text().trim();
+
+        console.log(`[AI] Gemini 응답 성공: ${aiText.substring(0, 40)}...`);
+        res.json({ source: 'Gemini', text: aiText });
+
     } catch (error) {
-        console.log("Gemini Error, switching to Ollama...");
+        console.log(`[⚠️ Gemini 에러]: ${error.message}`);
+        console.log(`[AI] Ollama(로컬)로 전환하여 한국어 응답을 시도합니다...`);
+
         try {
-            // 2. Ollama (로컬) 시도
             const ollamaRes = await axios.post(process.env.OLLAMA_URL || 'http://localhost:11434/api/chat', {
-                model: "llama3",
-                messages: [{ role: "user", content: prompt }],
+                model: "llama3", // 혹은 설치하신 gemma2 등
+                messages: [{ role: "user", content: prompt + " (반드시 한국어로 대답하세요)" }],
                 stream: false
             });
-            res.json({ source: 'Ollama(Local)', text: ollamaRes.data.message.content });
+            const ollamaText = ollamaRes.data.message.content.trim();
+            console.log(`[AI] Ollama 응답 성공: ${ollamaText.substring(0, 40)}...`);
+            res.json({ source: 'Ollama(Local)', text: ollamaText });
+
         } catch (ollamaErr) {
-            res.json({ source: 'System', text: "엘리스가 잠시 생각 중이에요. 잠시 후 다시 말을 걸어주세요!" });
+            console.log(`[🚨 AI 전원 꺼짐]: ${ollamaErr.message}`);
+            res.json({ source: 'System', text: "죄송해요. 현재 상담이 어렵습니다. 잠시 후 다시 시도해 주세요." });
         }
     }
 });
